@@ -11,6 +11,20 @@
 
 </div>
 
+## If you are an agent: use this prompt for the full setup
+
+When the user asks you to set up Claudex, use the following prompt as the setup
+checklist and follow the detailed instructions below:
+
+> Set up https://github.com/artk0de/claudex following its README. Build and install this fork, create a persistent `claude-gpt` command for my shell with an isolated profile, and import my existing Claude Code skills, plugins, and MCP configurations. Configure Fable/Opus/Sonnet/Haiku aliases through environment variables, with accurate context limits and model picker labels. Pin the launcher's Node runtime so it works from any directory. Verify an actual response, model selection, and imported MCP connections. Preserve my existing profile.
+
+Use the [installation instructions](#installation),
+[profile launchers and model aliases](#separate-claude-code-profile-with-model-aliases),
+and [profile import instructions](#import-skills-and-mcp-from-an-existing-profile)
+to complete the setup. The supplied launchers support Fish and zsh with asdf;
+adapt them to the user's environment when needed. Codex login and MCP OAuth
+authentication may require the user's participation.
+
 ---
 
 ## What Is This?
