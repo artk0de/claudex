@@ -12,10 +12,33 @@ import {
   getDefaultModel,
   getStartupMappingLines,
   getModelsUrl,
+  fetchModelsFromAPI,
   mapModelByTier,
 } from "../src/models.js";
 
 describe("models", () => {
+  it("should retain the default and maximum context windows from model discovery", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      models: [{
+        slug: "gpt-6.1-sol",
+        display_name: "GPT-6.1-Sol",
+        priority: 1,
+        supported_in_api: true,
+        visibility: "list",
+        context_window: 500000,
+        max_context_window: 872000,
+      }],
+    }));
+    try {
+      const models = await fetchModelsFromAPI("test-token");
+      assert.equal(models?.["gpt-6.1-sol"].contextWindow, 500000);
+      assert.equal(models?.["gpt-6.1-sol"].maxContextWindow, 872000);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("should have fallback models on init", () => {
     _resetForTesting();
     const models = getModels();

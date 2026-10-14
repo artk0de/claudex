@@ -16,12 +16,16 @@ export interface CodexModelInfo {
   priority: number;
   supported_in_api: boolean;
   visibility: string;
+  context_window?: number;
+  max_context_window?: number;
 }
 
 export interface ModelEntry {
   name: string;
   description: string;
   tier: "high" | "mid" | "fast";
+  contextWindow?: number;
+  maxContextWindow?: number;
 }
 
 export interface TierMapping {
@@ -264,6 +268,12 @@ export async function fetchModelsFromAPI(
         name: m.display_name || m.slug,
         description: m.description || "",
         tier: classifyTier(m.slug),
+        ...(Number.isSafeInteger(m.context_window) && m.context_window! > 0
+          ? { contextWindow: m.context_window }
+          : {}),
+        ...(Number.isSafeInteger(m.max_context_window) && m.max_context_window! > 0
+          ? { maxContextWindow: m.max_context_window }
+          : {}),
       };
     }
 

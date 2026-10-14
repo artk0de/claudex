@@ -29,18 +29,20 @@ This is useful if:
 
 ## Installation
 
-```bash
-npm install -g @caixiaoshun/claudex
-```
-
-Or build from source:
+Build and install this fork to get its compatibility fixes and profile launcher:
 
 ```bash
-git clone https://github.com/caixiaoshun/claudex.git
+git clone https://github.com/artk0de/claudex.git
 cd claudex
-npm install
+npm ci
 npm run build
+npm pack
+npm install -g ./caixiaoshun-claudex-*.tgz
 ```
+
+The `@caixiaoshun/claudex` npm release belongs to the upstream project and does
+not include this fork's changes. With a Node version manager, install the package
+under the Node version your shell uses to run `claudex`.
 
 ---
 
@@ -113,6 +115,96 @@ claude "Help me refactor this function"
 ```
 
 All Claude Code traffic now flows through Claudex to the ChatGPT Codex backend.
+
+---
+
+## Separate Claude Code profile with model aliases
+
+Install Claude Code and sign in to Codex CLI with `codex login` first. The Fish
+launcher in [`scripts/claude-gpt.fish`](scripts/claude-gpt.fish) starts Claudex
+with `--reuse-codex`, waits for its health endpoint, and runs Claude Code with
+`CLAUDE_CONFIG_DIR=$HOME/.claude-gpt`. Its settings, onboarding configuration,
+and session files are kept in that profile. Instructions from the working
+project still apply.
+
+From the fork's checkout, install the launcher:
+
+```fish
+mkdir -p ~/.config/fish/functions
+cp scripts/claude-gpt.fish ~/.config/fish/functions/claude-gpt.fish
+source ~/.config/fish/functions/claude-gpt.fish
+claude-gpt -p "hi!"
+```
+
+The launcher uses port `4032`. Set `CLAUDE_GPT_PORT` before launching to use
+another port. Its proxy log is `~/.claude-gpt/claudex-<port>.log`.
+
+### Set aliases with environment variables
+
+The aliases are Claude Code model slots. Set their target IDs in the launcher's
+`env` block; Claude Code resolves them before sending requests to Claudex.
+
+| Slot | Environment variable | Codex model | Default window | Maximum window |
+|------|----------------------|-------------|----------------|----------------|
+| Fable | `ANTHROPIC_DEFAULT_FABLE_MODEL` | `gpt-6-astra` | 272,000 | 872,000 |
+| Opus | `ANTHROPIC_DEFAULT_OPUS_MODEL` | `gpt-6.1-sol` | 500,000 | 872,000 |
+| Sonnet | `ANTHROPIC_DEFAULT_SONNET_MODEL` | `gpt-6-sol` | 272,000 | 872,000 |
+| Haiku | `ANTHROPIC_DEFAULT_HAIKU_MODEL` | `gpt-6-luna` | 272,000 | 872,000 |
+
+These windows were reported by the live Codex model catalog on October 14, 2026.
+The launcher sets `CLAUDE_CODE_MAX_CONTEXT_TOKENS=872000` because all four targets
+advertise that maximum. This declares the window to Claude Code and keeps
+auto-compaction enabled. It also sets the companion `_NAME` and `_DESCRIPTION`
+variables so `/model` shows the slot, actual GPT model, and 872k window.
+
+`CLAUDE_CODE_MAX_CONTEXT_TOKENS` applies to the whole process, including models
+selected later with `/model`. If you change a target model, check its catalog
+limits and update the window and picker descriptions. When your chosen models
+have different maximum windows, use their smallest maximum as the shared limit.
+Do not add `[1m]` to these aliases: that tells Claude Code to assume a 1M window.
+
+Inspect the current metadata with:
+
+```bash
+curl -fsS http://127.0.0.1:4032/claudex/models
+```
+
+Each discovered model includes `contextWindow` and `maxContextWindow` when Codex
+reports them. For the client-side window setting, see the
+[Claude Code model configuration](https://code.claude.com/docs/en/model-config#correct-the-window-for-a-gateway-or-custom-model-id).
+
+### Select or switch models
+
+```fish
+claude-gpt --model sonnet
+claude-gpt --model fable
+claude-gpt --model haiku -p "Reply exactly: OK"
+```
+
+Inside an interactive session, open `/model` to choose a row, or switch directly:
+
+```text
+/model sonnet
+/model opus
+/model fable
+/model haiku
+```
+
+The launcher passes arguments through to `claude`. It sets
+`ANTHROPIC_DEFAULT_MODEL=opus` for a fresh profile, rather than forcing
+`ANTHROPIC_MODEL` on every launch, so a selection saved with `/model` can become
+the profile's next-session default. `--model` overrides that default.
+
+To inspect the model and context window Claude Code actually used:
+
+```fish
+claude-gpt --model sonnet -p "Reply exactly: OK" --output-format json
+```
+
+Check `modelUsage`: the entry should be `gpt-6-sol`, with `contextWindow: 872000`.
+The `[claude-code:unrecognized_model]` stderr diagnostic may still appear for
+GPT IDs. It does not mean the request failed; the launcher declares the window
+explicitly instead of letting Claude Code assume 200k.
 
 ---
 

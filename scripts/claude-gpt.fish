@@ -1,0 +1,54 @@
+function claude-gpt --description "Claude Code via ChatGPT/Codex through Claudex"
+    set -l config_dir "$HOME/.claude-gpt"
+    set -l proxy_port 4032
+    if set -q CLAUDE_GPT_PORT
+        set proxy_port $CLAUDE_GPT_PORT
+    end
+    set -l proxy_url "http://127.0.0.1:$proxy_port"
+    set -l proxy_log "$config_dir/claudex-$proxy_port.log"
+
+    mkdir -p "$config_dir"
+    node -e 'const fs=require("node:fs"); const file=process.argv[1]; let data={}; try { data=JSON.parse(fs.readFileSync(file,"utf8")); } catch {} if (data.hasCompletedOnboarding !== true) { data.hasCompletedOnboarding=true; fs.writeFileSync(file,JSON.stringify(data,null,2)+"\n",{mode:0o600}); }' "$config_dir/.claude.json"
+
+    if not curl -fsS "$proxy_url/health" >/dev/null 2>&1
+        nohup env -u CODEX_MODEL -u CODEX_REASONING PROXY_PORT=$proxy_port claudex --reuse-codex --port $proxy_port \
+            >"$proxy_log" 2>&1 </dev/null &
+
+        set -l ready 0
+        for attempt in (seq 1 30)
+            if curl -fsS "$proxy_url/health" >/dev/null 2>&1
+                set ready 1
+                break
+            end
+            sleep 1
+        end
+
+        if test $ready -ne 1
+            echo "claude-gpt: Claudex proxy did not become ready; see $proxy_log" >&2
+            return 1
+        end
+    end
+
+    # Claude Code resolves these model slots before sending them to Claudex.
+    env -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_MODEL \
+        -u CLAUDE_CODE_AUTO_COMPACT_WINDOW -u CLAUDE_CODE_DISABLE_1M_CONTEXT \
+        -u CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT \
+        CLAUDE_CONFIG_DIR="$config_dir" \
+        ANTHROPIC_BASE_URL="$proxy_url" \
+        ANTHROPIC_API_KEY="sk-ant-placeholder" \
+        ANTHROPIC_DEFAULT_MODEL="opus" \
+        CLAUDE_CODE_MAX_CONTEXT_TOKENS="872000" \
+        ANTHROPIC_DEFAULT_FABLE_MODEL="gpt-6-astra" \
+        ANTHROPIC_DEFAULT_FABLE_MODEL_NAME="Fable · GPT-6-Astra · 872k" \
+        ANTHROPIC_DEFAULT_FABLE_MODEL_DESCRIPTION="GPT-6-Astra via Claudex; maximum context: 872000 tokens" \
+        ANTHROPIC_DEFAULT_OPUS_MODEL="gpt-6.1-sol" \
+        ANTHROPIC_DEFAULT_OPUS_MODEL_NAME="Opus · GPT-6.1-Sol · 872k" \
+        ANTHROPIC_DEFAULT_OPUS_MODEL_DESCRIPTION="GPT-6.1-Sol via Claudex; maximum context: 872000 tokens" \
+        ANTHROPIC_DEFAULT_SONNET_MODEL="gpt-6-sol" \
+        ANTHROPIC_DEFAULT_SONNET_MODEL_NAME="Sonnet · GPT-6-Sol · 872k" \
+        ANTHROPIC_DEFAULT_SONNET_MODEL_DESCRIPTION="GPT-6-Sol via Claudex; maximum context: 872000 tokens" \
+        ANTHROPIC_DEFAULT_HAIKU_MODEL="gpt-6-luna" \
+        ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME="Haiku · GPT-6-Luna · 872k" \
+        ANTHROPIC_DEFAULT_HAIKU_MODEL_DESCRIPTION="GPT-6-Luna via Claudex; maximum context: 872000 tokens" \
+        claude $argv
+end
