@@ -124,13 +124,15 @@ All Claude Code traffic now flows through Claudex to the ChatGPT Codex backend.
 ## Separate Claude Code profile with model aliases
 
 Install Claude Code and sign in to Codex CLI with `codex login` first. The Fish
-launcher in [`scripts/claude-gpt.fish`](scripts/claude-gpt.fish) starts Claudex
+and zsh launchers start Claudex
 with `--reuse-codex`, waits for its health endpoint, and runs Claude Code with
 `CLAUDE_CONFIG_DIR=$HOME/.claude-gpt`. Its settings, onboarding configuration,
 and session files are kept in that profile. Instructions from the working
 project still apply.
 
-From the fork's checkout, install the launcher:
+### Fish
+
+From the fork's checkout, install [`scripts/claude-gpt.fish`](scripts/claude-gpt.fish):
 
 ```fish
 mkdir -p ~/.config/fish/functions
@@ -139,8 +141,32 @@ source ~/.config/fish/functions/claude-gpt.fish
 claude-gpt -p "hi!"
 ```
 
-The launcher requires asdf and Node.js `24.15.0`, with Claudex installed under
-that version. It sets a function-local `ASDF_NODEJS_VERSION` and prepends the
+### zsh
+
+From the fork's checkout, install [`scripts/claude-gpt.zsh`](scripts/claude-gpt.zsh):
+
+```zsh
+mkdir -p ~/.config/zsh
+cp scripts/claude-gpt.zsh ~/.config/zsh/claude-gpt.zsh
+source ~/.config/zsh/claude-gpt.zsh
+claude-gpt --model sonnet -p "hi!"
+```
+
+Add this line to `~/.zshrc` to load the function in new terminals:
+
+```zsh
+source "$HOME/.config/zsh/claude-gpt.zsh"
+```
+
+The zsh function runs in a subshell, so its exported Node and provider variables
+do not change your current shell. It passes arguments as `"$@"`, preserving
+quoted prompts and flags. Both launchers use the same profile and model aliases;
+`claude-gpt --model sonnet` and `/model sonnet` work in either shell.
+
+### Runtime and proxy settings
+
+Both launchers require asdf and Node.js `24.15.0`, with Claudex installed under
+that version. They set an invocation-local `ASDF_NODEJS_VERSION` and prepend the
 matching Node `bin` directory to `PATH`, so it uses the same runtime in every
 working directory, including repositories with a different `.tool-versions`.
 The override is inherited by Claude Code and its child processes; the calling
