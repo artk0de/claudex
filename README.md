@@ -16,7 +16,7 @@
 When the user asks you to set up Claudex, use the following prompt as the setup
 checklist and follow the detailed instructions below:
 
-> Set up https://github.com/artk0de/claudex following its README. Build and install this fork, create a persistent `claude-gpt` command for my shell with an isolated profile, and import my existing Claude Code skills, plugins, and MCP configurations. Configure Fable/Opus/Sonnet/Haiku aliases through environment variables, with accurate context limits and model picker labels. Pin the launcher's Node runtime so it works from any directory. Verify an actual response, model selection, and imported MCP connections. Preserve my existing profile.
+> Set up https://github.com/artk0de/claudex following its README. Build and install this fork, create a persistent `claude-gpt` command for my shell with an isolated profile, and import my existing Claude Code skills, plugins, and MCP configurations. Configure Fable/Opus/Sonnet/Haiku aliases through environment variables, with accurate context limits and model picker labels. Pin the launcher's Node runtime so it works from any directory. Verify actual responses in both a regular session and a background agent, model selection, and imported MCP connections. Preserve my existing profile.
 
 Use the [installation instructions](#installation),
 [profile launchers and model aliases](#separate-claude-code-profile-with-model-aliases),
@@ -190,6 +190,48 @@ Node version.
 
 The launcher uses port `4032`. Set `CLAUDE_GPT_PORT` before launching to use
 another port. Its proxy log is `~/.claude-gpt/claudex-<port>.log`.
+
+### Background agents
+
+Use the same launcher for the background agent view and background sessions:
+
+```bash
+claude-gpt agents
+claude-gpt --bg --model sonnet "Explain this repository"
+```
+
+Passing the proxy URL and API key only through the launcher's environment is
+not sufficient for all background workers. The launchers also merge these
+values into `~/.claude-gpt/settings.json`, retaining existing settings:
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:4032",
+    "ANTHROPIC_API_KEY": "sk-ant-placeholder",
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "872000"
+  }
+}
+```
+
+The key above is a placeholder for the local proxy; Claudex uses the Codex
+session for upstream authentication. Keep these values in the isolated
+profile so workers can load them even when the background daemon does not
+retain the original shell environment. The launcher updates the URL when
+`CLAUDE_GPT_PORT` changes.
+
+After updating an older Fish launcher, reload it:
+
+```fish
+source ~/.config/fish/functions/claude-gpt.fish
+claude-gpt agents
+```
+
+For zsh, source `~/.config/zsh/claude-gpt.zsh` instead. If an existing background
+session still shows `Invalid API key`, restart that session while preserving
+its conversation with `claude-gpt respawn <session-id>`. Use
+`claude-gpt logs <session-id>` to inspect its response and check the proxy log for the matching
+request.
 
 ### Set aliases with environment variables
 

@@ -23,7 +23,29 @@ claude-gpt() (
     local proxy_log="$config_dir/claudex-$proxy_port.log"
 
     mkdir -p "$config_dir" || return 1
-    node -e 'const fs=require("node:fs"); const file=process.argv[1]; let data={}; try { data=JSON.parse(fs.readFileSync(file,"utf8")); } catch {} if (data.hasCompletedOnboarding !== true) { data.hasCompletedOnboarding=true; fs.writeFileSync(file,JSON.stringify(data,null,2)+"\n",{mode:0o600}); }' "$config_dir/.claude.json" || return 1
+    # Background workers reload profile settings instead of retaining all env vars.
+    node -e '
+const fs = require("node:fs");
+const path = require("node:path");
+const [directory, baseUrl] = process.argv.slice(1);
+function update(name, change) {
+    const file = path.join(directory, name);
+    const original = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
+    const data = original === null ? {} : JSON.parse(original);
+    change(data);
+    const text = JSON.stringify(data, null, 2) + "\n";
+    if (text !== original) {
+        const temporary = file + ".launcher-" + process.pid + ".tmp";
+        fs.writeFileSync(temporary, text, { mode: 0o600, flag: "wx" });
+        fs.renameSync(temporary, file);
+    }
+}
+update(".claude.json", (data) => { data.hasCompletedOnboarding = true; });
+update("settings.json", (data) => {
+    data.env = { ...data.env, ANTHROPIC_BASE_URL: baseUrl,
+        ANTHROPIC_API_KEY: "sk-ant-placeholder", CLAUDE_CODE_MAX_CONTEXT_TOKENS: "872000" };
+});
+' "$config_dir" "$proxy_url" || return 1
 
     if ! curl -fsS "$proxy_url/health" >/dev/null 2>&1; then
         nohup env -u CODEX_MODEL -u CODEX_REASONING PROXY_PORT="$proxy_port" \
