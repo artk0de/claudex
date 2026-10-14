@@ -125,7 +125,7 @@ All Claude Code traffic now flows through Claudex to the ChatGPT Codex backend.
 
 Install Claude Code and sign in to Codex CLI with `codex login` first. The Fish
 and zsh launchers start Claudex
-with `--reuse-codex`, waits for its health endpoint, and runs Claude Code with
+with `--reuse-codex`, wait for its health endpoint, and run Claude Code with
 `CLAUDE_CONFIG_DIR=$HOME/.claude-gpt`. Its settings, onboarding configuration,
 and session files are kept in that profile. Instructions from the working
 project still apply.
@@ -243,6 +243,69 @@ Check `modelUsage`: the entry should be `gpt-6-sol`, with `contextWindow: 872000
 The `[claude-code:unrecognized_model]` stderr diagnostic may still appear for
 GPT IDs. It does not mean the request failed; the launcher declares the window
 explicitly instead of letting Claude Code assume 200k.
+
+### Import skills and MCP from an existing profile
+
+Check the existing launcher's `CLAUDE_CONFIG_DIR` first. A launcher named
+`claude-max` that unsets this variable uses the standard profile `~/.claude`,
+with user and project-local MCP definitions in `~/.claude.json`. The launcher
+name does not imply a directory named `~/.claude-max`.
+
+Close sessions using the destination profile before importing, so they do not
+write their settings at the same time. From this fork's checkout, preview the
+import with [`scripts/import-claude-profile.mjs`](scripts/import-claude-profile.mjs):
+
+```bash
+node scripts/import-claude-profile.mjs \
+  --source-dir "$HOME/.claude" \
+  --source-config "$HOME/.claude.json" \
+  --target-dir "$HOME/.claude-gpt" \
+  --dry-run
+```
+
+Then run the same command without `--dry-run` to apply it:
+
+```bash
+node scripts/import-claude-profile.mjs \
+  --source-dir "$HOME/.claude" \
+  --source-config "$HOME/.claude.json" \
+  --target-dir "$HOME/.claude-gpt"
+```
+
+These commands work in Fish and zsh. For a custom source profile, use its
+directory as `--source-dir` and its `.claude.json` file as `--source-config`.
+
+The importer copies missing user skills and commands, user-installed plugin
+caches, and the marketplace registrations those plugins need. It relocates
+plugin installation paths into the destination, retains their enabled or
+disabled settings, and merges global and project-local MCP definitions.
+Existing destination skill names, plugin installations, MCP server names, and
+settings take precedence. Re-running the import adds missing entries without
+overwriting existing ones.
+
+Before changing JSON files, the importer saves their originals under
+`~/.claude-gpt/backups/profile-import-<timestamp>/`. Its `manifest.json` lists
+newly copied paths and changed files. The command prints names and counts,
+without printing MCP environment values or credentials.
+
+Anthropic account credentials, chat history, provider environment settings,
+hooks, permissions, and model choices are not imported. MCP definitions may
+include their own `env` credentials; those stay in the private destination
+configuration. OAuth sessions stored separately are not copied, so a server
+may require authentication again through `/mcp`. External executable paths and
+service URLs in MCP definitions remain unchanged; this import assumes those
+tools and services are available on the same machine.
+
+Restart `claude-gpt`, then use `/skills` and `/mcp` to inspect the imported
+configuration. To check server connections from the shell:
+
+```bash
+claude-gpt mcp list
+```
+
+Restore a changed JSON file by copying its counterpart from the reported backup
+directory. The manifest identifies newly copied directories if you also need
+to remove imported files.
 
 ---
 
