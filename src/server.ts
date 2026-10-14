@@ -683,6 +683,17 @@ export async function collectCodexResponseFromSSE(
       }
 
       switch (event) {
+        case "error": {
+          const upstreamError = isRecord(parsed.error)
+            ? parsed.error
+            : parsed;
+          const message =
+            typeof upstreamError.message === "string"
+              ? upstreamError.message
+              : "Codex API stream error";
+          throw new Error(message);
+        }
+
         case "response.output_text.delta":
           if (typeof parsed.delta === "string") {
             currentText += parsed.delta;
@@ -965,15 +976,26 @@ export function startServer(port: number): http.Server {
             | "medium"
             | "high";
         }
+        if (isRecord(config.tierModels)) {
+          const models = getModels();
+          for (const tier of ["fable", "opus", "sonnet", "haiku"] as const) {
+            const model = config.tierModels[tier];
+            if (typeof model === "string" && (!model || models[model])) {
+              proxyConfig.tierModels[tier] = model;
+            }
+          }
+        }
         logger.info("Runtime config updated", {
           model: proxyConfig.model || "(auto)",
           reasoning: proxyConfig.reasoning || "(auto)",
+          tierModels: proxyConfig.tierModels,
         });
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify({
             model: proxyConfig.model || "(auto)",
             reasoning: proxyConfig.reasoning || "(auto)",
+            tierModels: proxyConfig.tierModels,
           })
         );
       } catch {

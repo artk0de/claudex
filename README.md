@@ -242,12 +242,25 @@ claudex --model gpt-5.4-mini --reasoning high
 CODEX_MODEL=gpt-5.4-mini CODEX_REASONING=high claudex
 ```
 
+Use tier-specific overrides when each Claude model tier should use a different
+Codex model. A tier override takes precedence over `CODEX_MODEL` for matching
+Claude model IDs; `claudex:<model>:<reasoning>` remains the most specific
+per-request override.
+
+```bash
+CODEX_FABLE_MODEL=gpt-5.4 \
+CODEX_OPUS_MODEL=gpt-5.4 \
+CODEX_SONNET_MODEL=gpt-5.4-mini \
+CODEX_HAIKU_MODEL=gpt-5.4-nano \
+claudex
+```
+
 ### Override at runtime
 
 ```bash
 curl -X POST http://localhost:4000/claudex/config \
   -H "Content-Type: application/json" \
-  -d '{"model": "gpt-5.4-mini", "reasoning": "high"}'
+  -d '{"model": "gpt-5.4-mini", "reasoning": "high", "tierModels": {"opus": "gpt-5.4", "sonnet": "gpt-5.4-mini", "haiku": "gpt-5.4-nano"}}'
 ```
 
 ### Override from Claude Code `/model`
@@ -386,6 +399,10 @@ Options:
 |----------|-------------|---------|
 | `CODEX_MODEL` | Force a specific Codex model | Auto-mapped from Claude Code model |
 | `CODEX_REASONING` | Force a reasoning level | Auto |
+| `CODEX_FABLE_MODEL` | Override the Fable tier's Codex model | Automatic tier mapping |
+| `CODEX_OPUS_MODEL` | Override the Opus tier's Codex model | Automatic tier mapping |
+| `CODEX_SONNET_MODEL` | Override the Sonnet tier's Codex model | Automatic tier mapping |
+| `CODEX_HAIKU_MODEL` | Override the Haiku tier's Codex model | Automatic tier mapping |
 | `CODEX_API_ENDPOINT` | Override Codex Responses API endpoint | `https://chatgpt.com/backend-api/codex/responses` |
 | `CODEX_CLIENT_VERSION` | Override the model-discovery `client_version` hint | Auto-detected or `0.115.0` |
 | `CODEX_API_FETCH_RETRIES` | Retries for upstream Codex fetch failures | `3` |

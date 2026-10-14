@@ -26,6 +26,12 @@ export const proxyConfig = {
     | "low"
     | "medium"
     | "high",
+  tierModels: {
+    fable: process.env.CODEX_FABLE_MODEL || "",
+    opus: process.env.CODEX_OPUS_MODEL || "",
+    sonnet: process.env.CODEX_SONNET_MODEL || "",
+    haiku: process.env.CODEX_HAIKU_MODEL || "",
+  },
 };
 
 // ===================================================================
@@ -238,20 +244,27 @@ export function mapModel(anthropicModel: string): string {
   const parsed = parseClaudexModelString(anthropicModel);
   if (parsed) return parsed.model;
 
-  // 2. CLI / env override
+  // 2. Per-tier override
+  const lowerModel = anthropicModel.toLowerCase();
+  for (const tier of ["fable", "opus", "sonnet", "haiku"] as const) {
+    const override = proxyConfig.tierModels[tier];
+    if (override && lowerModel.includes(tier)) return override;
+  }
+
+  // 3. CLI / env override
   if (proxyConfig.model) return proxyConfig.model;
   const envModel = process.env.CODEX_MODEL;
   if (envModel) return envModel;
 
-  // 3. If the model is already a known Codex model, pass through
+  // 4. If the model is already a known Codex model, pass through
   const knownModels = getModels();
   if (knownModels[anthropicModel]) return anthropicModel;
 
-  // 4. Map Anthropic tier → Codex model
+  // 5. Map Anthropic tier → Codex model
   const mapped = mapModelByTier(anthropicModel);
   if (mapped) return mapped;
 
-  // 5. Default
+  // 6. Default
   return getDefaultModel();
 }
 
@@ -580,10 +593,17 @@ function normalizeSchemaInternal(
     }
   }
 
-  const withType: Record<string, unknown> =
+  const withInferredType: Record<string, unknown> =
     normalizedChildren.type === undefined
       ? { ...normalizedChildren, type: inferType(normalizedChildren) }
       : { ...normalizedChildren };
+
+  // Codex requires every object schema to declare its properties field. Claude
+  // Code emits unconstrained object inputs (for example Workflow.args), which
+  // otherwise reach Codex as `{ type: "object" }` and are rejected.
+  const withType = isDegenerateObjectShell(withInferredType)
+    ? { ...withInferredType, properties: {} }
+    : withInferredType;
 
   const normalizedProperties = withType.properties;
   let withRequired = withType;
@@ -1721,6 +1741,30 @@ export class StreamConverter {
           errorMsg = (err.message as string) || "Unknown error";
         }
 
+        events.push(
+          this.sse("error", {
+            type: "error",
+            error: {
+              type: "api_error",
+              message: errorMsg,
+            },
+          })
+        );
+        events.push(...this.emitFinish("end_turn"));
+        break;
+      }
+
+      case "error": {
+        events.push(...this.ensureStarted());
+        events.push(...this.closeOpenBlock());
+
+        const error = isRecord(data.error)
+          ? data.error
+          : data;
+        const errorMsg =
+          typeof error.message === "string"
+            ? error.message
+            : "Codex API stream error";
         events.push(
           this.sse("error", {
             type: "error",

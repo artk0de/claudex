@@ -964,6 +964,21 @@ function assertSchemaInvariants(node: unknown): void {
 }
 
 describe("sanitizeToolSchema", () => {
+  it("should add properties to unconstrained object schemas", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        args: { type: "object", additionalProperties: false },
+      },
+    };
+
+    const result = sanitizeToolSchema(schema) as Record<string, unknown>;
+    const args = (result.properties as Record<string, Record<string, unknown>>)
+      .args;
+
+    assert.deepEqual(args.properties, {});
+  });
+
   it("should strip format from property definitions", () => {
     const schema = {
       type: "object",
@@ -1502,6 +1517,33 @@ describe("sanitizeToolSchema", () => {
 });
 
 describe("anthropicToCodex tool schema sanitization (integration)", () => {
+  it("should preserve an unconstrained Workflow args object for Codex", () => {
+    const req: AnthropicRequest = {
+      model: "claude-opus-4-20250514",
+      max_tokens: 1024,
+      messages: [{ role: "user", content: "Run a workflow" }],
+      tools: [
+        {
+          name: "Workflow",
+          description: "Run a workflow",
+          input_schema: {
+            type: "object",
+            properties: {
+              args: { type: "object", additionalProperties: false },
+            },
+          },
+        },
+      ],
+    };
+
+    const result = anthropicToCodex(req);
+    const params = asFunctionTool(result.tools![0]).parameters;
+    const args = (params.properties as Record<string, Record<string, unknown>>)
+      .args;
+
+    assert.deepEqual(args.properties, {});
+  });
+
   it("should normalize ExitPlanMode into a backend-safe object schema", () => {
     const req: AnthropicRequest = {
       model: "claude-3-5-sonnet-20241022",
@@ -2306,6 +2348,16 @@ describe("StreamConverter additional events", () => {
     assert.ok(events.some((e) => e.includes("message_stop")));
   });
 
+  it("should surface upstream SSE errors instead of ending with an empty response", () => {
+    const converter = new StreamConverter("claude-3-5-sonnet-20241022");
+    const events = converter.processEvent("error", {
+      error: { message: "Invalid tool schema" },
+    });
+
+    assert.ok(events.some((event) => event.includes("Invalid tool schema")));
+    assert.ok(events.some((event) => event.includes("message_stop")));
+  });
+
   it("should handle response.incomplete as max_tokens stop", () => {
     const converter = new StreamConverter("claude-3-5-sonnet-20241022");
     converter.processEvent("response.output_text.delta", { delta: "Hi" });
@@ -2401,6 +2453,26 @@ describe("parseClaudexModelString", () => {
 });
 
 describe("mapModel", () => {
+  it("should use a model override for the matching tier", () => {
+    const savedModel = proxyConfig.model;
+    const savedTierModels = { ...proxyConfig.tierModels };
+    const origEnv = process.env.CODEX_MODEL;
+    proxyConfig.model = "gpt-global";
+    for (const tier of ["fable", "opus", "sonnet", "haiku"] as const) {
+      proxyConfig.tierModels[tier] = "";
+    }
+    proxyConfig.tierModels.opus = "gpt-opus";
+    delete process.env.CODEX_MODEL;
+    try {
+      assert.equal(mapModel("claude-opus-4-20250514"), "gpt-opus");
+      assert.equal(mapModel("claude-sonnet-4-20250514"), "gpt-global");
+    } finally {
+      proxyConfig.model = savedModel;
+      Object.assign(proxyConfig.tierModels, savedTierModels);
+      if (origEnv !== undefined) process.env.CODEX_MODEL = origEnv;
+    }
+  });
+
   it("should map opus to highest-tier model", () => {
     const saved = proxyConfig.model;
     proxyConfig.model = "";

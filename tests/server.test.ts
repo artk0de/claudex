@@ -8,6 +8,20 @@ function sseEvent(event: string, data: unknown): string {
 }
 
 describe("collectCodexResponseFromSSE", () => {
+  it("should reject upstream SSE error events", async () => {
+    const response = new Response(
+      sseEvent("error", {
+        type: "error",
+        error: { message: "Invalid tool schema" },
+      })
+    );
+
+    await assert.rejects(
+      collectCodexResponseFromSSE(response),
+      /Invalid tool schema/
+    );
+  });
+
   it("should return the embedded response from response.completed", async () => {
     const expected = {
       id: "resp_123",

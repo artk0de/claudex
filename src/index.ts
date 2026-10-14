@@ -276,6 +276,10 @@ Options:
 Environment Variables:
   CODEX_MODEL                  OpenAI model to use (default: auto-mapped from Claude Code model)
   CODEX_REASONING              Reasoning intensity: low, medium, or high
+  CODEX_FABLE_MODEL            OpenAI model override for the Fable tier
+  CODEX_OPUS_MODEL             OpenAI model override for the Opus tier
+  CODEX_SONNET_MODEL           OpenAI model override for the Sonnet tier
+  CODEX_HAIKU_MODEL            OpenAI model override for the Haiku tier
   CODEX_API_ENDPOINT           Override Codex API endpoint
   CODEX_MODEL_REFRESH_INTERVAL Model refresh interval in ms (default: 3600000 = 1 hour)
   PROXY_PORT                   Default port (overridden by --port)
@@ -283,8 +287,9 @@ Environment Variables:
 Model Selection:
   At startup:        claudex --model gpt-5.4-mini --reasoning high
   Via env:           CODEX_MODEL=gpt-5.4-mini CODEX_REASONING=high claudex
+                     CODEX_OPUS_MODEL=gpt-5.4 CODEX_HAIKU_MODEL=gpt-5.4-nano claudex
   At runtime:        curl -X POST http://localhost:4000/claudex/config \\
-                       -d '{"model":"gpt-5.4-mini","reasoning":"high"}'
+                       -d '{"model":"gpt-5.4-mini","reasoning":"high","tierModels":{"opus":"gpt-5.4","haiku":"gpt-5.4-nano"}}'
   Via /model in Claude Code:
                      Use the model name claudex:<model>:<reasoning>
                      e.g. claudex:gpt-5.4-mini:high
