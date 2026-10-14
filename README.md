@@ -32,6 +32,9 @@ This is useful if:
 Build and install this fork to get its compatibility fixes and profile launcher:
 
 ```bash
+asdf install nodejs 24.15.0  # if not already installed
+export ASDF_NODEJS_VERSION=24.15.0
+export PATH="$(asdf where nodejs 24.15.0)/bin:$PATH"
 git clone https://github.com/artk0de/claudex.git
 cd claudex
 npm ci
@@ -135,6 +138,15 @@ cp scripts/claude-gpt.fish ~/.config/fish/functions/claude-gpt.fish
 source ~/.config/fish/functions/claude-gpt.fish
 claude-gpt -p "hi!"
 ```
+
+The launcher requires asdf and Node.js `24.15.0`, with Claudex installed under
+that version. It sets a function-local `ASDF_NODEJS_VERSION` and prepends the
+matching Node `bin` directory to `PATH`, so it uses the same runtime in every
+working directory, including repositories with a different `.tool-versions`.
+The override is inherited by Claude Code and its child processes; the calling
+shell's environment is restored when the function returns. To upgrade the
+runtime, change `node_version` in the function and install Claudex under that
+Node version.
 
 The launcher uses port `4032`. Set `CLAUDE_GPT_PORT` before launching to use
 another port. Its proxy log is `~/.claude-gpt/claudex-<port>.log`.

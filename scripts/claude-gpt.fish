@@ -1,4 +1,18 @@
 function claude-gpt --description "Claude Code via ChatGPT/Codex through Claudex"
+    # Use the installation's Node version in every working directory.
+    set -l node_version 24.15.0
+    set -lx ASDF_NODEJS_VERSION $node_version
+    set -l node_dir (command asdf where nodejs $node_version 2>/dev/null)
+    if test $status -ne 0; or not test -x "$node_dir/bin/node"
+        echo "claude-gpt: Node.js $node_version is not installed in asdf" >&2
+        return 1
+    end
+    set -lx PATH "$node_dir/bin" $PATH
+    if not test -x "$node_dir/bin/claudex"
+        echo "claude-gpt: Claudex is not installed under Node.js $node_version" >&2
+        return 1
+    end
+
     set -l config_dir "$HOME/.claude-gpt"
     set -l proxy_port 4032
     if set -q CLAUDE_GPT_PORT
