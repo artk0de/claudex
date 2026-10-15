@@ -43,7 +43,7 @@ function update(name, change) {
 }
 update(".claude.json", (data) => {
     data.hasCompletedOnboarding = true;
-    const keepMcp = new Set(["tea-rags"]);
+    const keepMcp = new Set(["filesystem", "git-global", "tea-rags", "ripgrep", "http-client", "mermaid", "markdownlint"]);
     data.mcpServers = Object.fromEntries(Object.entries(data.mcpServers || {}).filter(([name]) => keepMcp.has(name)));
 });
 update("settings.json", (data) => {

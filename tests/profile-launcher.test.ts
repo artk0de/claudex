@@ -26,6 +26,7 @@ describe("profile launcher", () => {
         fs.writeFileSync(configFile, JSON.stringify({ mcpServers: {
           demo: { command: "demo" },
           "tea-rags": { command: "tea-rags" },
+          filesystem: { command: "filesystem" },
         } }));
         run("http://127.0.0.1:4032");
         const settings = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
@@ -43,6 +44,7 @@ describe("profile launcher", () => {
         assert.equal(config.hasCompletedOnboarding, true);
         assert.equal(config.mcpServers.demo, undefined);
         assert.equal(config.mcpServers["tea-rags"].command, "tea-rags");
+        assert.equal(config.mcpServers.filesystem.command, "filesystem");
         assert.equal(fs.statSync(settingsFile).mode & 0o777, 0o600);
         const modified = fs.statSync(settingsFile).mtimeMs;
         run("http://127.0.0.1:4032");

@@ -277,8 +277,10 @@ reports them. For the client-side window setting, see the
 
 ### GPT profile MCP and plugin load
 
-The GPT profile keeps the `tea-rags` MCP server and its `tea-rags`, `dinopowers`,
-and `superpowers` plugins enabled. Other imported global MCP servers and
+The GPT profile keeps the project-required MCP servers `filesystem`,
+`git-global`, `tea-rags`, `ripgrep`, `http-client`, `mermaid`, and
+`markdownlint`. These are required by this project's `CLAUDE.md`, including
+when Claude Code enters a worktree. Other imported global MCP servers and
 optional plugins are disabled in this profile to reduce schema and instruction
 overhead. The regular `~/.claude` profile is not changed. The launchers enforce
 this allow-list each time they start; restore a disabled integration by editing
