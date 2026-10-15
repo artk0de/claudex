@@ -20,13 +20,17 @@ function claude-gpt --description "Claude Code via ChatGPT/Codex through Claudex
     end
     set -l proxy_url "http://127.0.0.1:$proxy_port"
     set -l proxy_log "$config_dir/claudex-$proxy_port.log"
+    set -l compact_window 272000
+    if set -q CLAUDE_GPT_AUTO_COMPACT_WINDOW
+        set compact_window $CLAUDE_GPT_AUTO_COMPACT_WINDOW
+    end
 
     mkdir -p "$config_dir"
     # Background workers reload profile settings instead of retaining all env vars.
     node -e '
 const fs = require("node:fs");
 const path = require("node:path");
-const [directory, baseUrl] = process.argv.slice(1);
+const [directory, baseUrl, compactWindow] = process.argv.slice(1);
 function update(name, change) {
     const file = path.join(directory, name);
     const original = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
@@ -39,12 +43,20 @@ function update(name, change) {
         fs.renameSync(temporary, file);
     }
 }
-update(".claude.json", (data) => { data.hasCompletedOnboarding = true; });
+update(".claude.json", (data) => {
+    data.hasCompletedOnboarding = true;
+    const keepMcp = new Set(["tea-rags"]);
+    data.mcpServers = Object.fromEntries(Object.entries(data.mcpServers || {}).filter(([name]) => keepMcp.has(name)));
+});
 update("settings.json", (data) => {
     data.env = { ...data.env, ANTHROPIC_BASE_URL: baseUrl,
-        ANTHROPIC_API_KEY: "sk-ant-placeholder", CLAUDE_CODE_MAX_CONTEXT_TOKENS: "872000" };
+        ANTHROPIC_API_KEY: "sk-ant-placeholder",
+        CLAUDE_CODE_AUTO_COMPACT_WINDOW: compactWindow,
+        CLAUDE_CODE_MAX_CONTEXT_TOKENS: "872000" };
+    const keepPlugins = new Set(["tea-rags@tea-rags", "dinopowers@tea-rags", "superpowers@claude-plugins-official"]);
+    data.enabledPlugins = Object.fromEntries(Object.keys(data.enabledPlugins || {}).map((id) => [id, keepPlugins.has(id)]));
 });
-' "$config_dir" "$proxy_url"
+' "$config_dir" "$proxy_url" "$compact_window"
     if test $status -ne 0
         return 1
     end
@@ -75,6 +87,7 @@ update("settings.json", (data) => {
         CLAUDE_CONFIG_DIR="$config_dir" \
         ANTHROPIC_BASE_URL="$proxy_url" \
         ANTHROPIC_API_KEY="sk-ant-placeholder" \
+        CLAUDE_CODE_AUTO_COMPACT_WINDOW="$compact_window" \
         ANTHROPIC_DEFAULT_MODEL="opus" \
         CLAUDE_CODE_MAX_CONTEXT_TOKENS="872000" \
         ANTHROPIC_DEFAULT_FABLE_MODEL="gpt-6-astra" \

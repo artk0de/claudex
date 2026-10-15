@@ -209,6 +209,7 @@ values into `~/.claude-gpt/settings.json`, retaining existing settings:
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:4032",
     "ANTHROPIC_API_KEY": "sk-ant-placeholder",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "272000",
     "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "872000"
   }
 }
@@ -257,6 +258,13 @@ limits and update the window and picker descriptions. When your chosen models
 have different maximum windows, use their smallest maximum as the shared limit.
 Do not add `[1m]` to these aliases: that tells Claude Code to assume a 1M window.
 
+The GPT launcher intentionally auto-compacts at `272000` tokens to keep large
+MCP and skill prompts from reaching the upstream request buffer limit. Override
+that threshold with `CLAUDE_GPT_AUTO_COMPACT_WINDOW=200000` (or another value
+supported by Claude Code). The launcher passes it as
+`CLAUDE_CODE_AUTO_COMPACT_WINDOW` and stores it in the isolated profile for
+background agents.
+
 Inspect the current metadata with:
 
 ```bash
@@ -266,6 +274,15 @@ curl -fsS http://127.0.0.1:4032/claudex/models
 Each discovered model includes `contextWindow` and `maxContextWindow` when Codex
 reports them. For the client-side window setting, see the
 [Claude Code model configuration](https://code.claude.com/docs/en/model-config#correct-the-window-for-a-gateway-or-custom-model-id).
+
+### GPT profile MCP and plugin load
+
+The GPT profile keeps the `tea-rags` MCP server and its `tea-rags`, `dinopowers`,
+and `superpowers` plugins enabled. Other imported global MCP servers and
+optional plugins are disabled in this profile to reduce schema and instruction
+overhead. The regular `~/.claude` profile is not changed. The launchers enforce
+this allow-list each time they start; restore a disabled integration by editing
+the allow-list in both launcher scripts.
 
 ### Select or switch models
 

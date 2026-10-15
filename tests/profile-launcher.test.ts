@@ -15,28 +15,34 @@ describe("profile launcher", () => {
       const settingsFile = path.join(directory, "settings.json");
       const configFile = path.join(directory, ".claude.json");
       const run = (url: string): void => {
-        execFileSync(process.execPath, ["-e", script, directory, url], { stdio: "pipe" });
+        execFileSync(process.execPath, ["-e", script, directory, url, "272000"], { stdio: "pipe" });
       };
       try {
         fs.writeFileSync(settingsFile, JSON.stringify({
-          enabledPlugins: { "demo@market": true },
+          enabledPlugins: { "demo@market": true, "tea-rags@tea-rags": false },
           model: "sonnet",
           env: { CUSTOM_SETTING: "keep" },
         }));
-        fs.writeFileSync(configFile, JSON.stringify({ mcpServers: { demo: { command: "demo" } } }));
+        fs.writeFileSync(configFile, JSON.stringify({ mcpServers: {
+          demo: { command: "demo" },
+          "tea-rags": { command: "tea-rags" },
+        } }));
         run("http://127.0.0.1:4032");
         const settings = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
         assert.deepEqual(settings.env, {
           CUSTOM_SETTING: "keep",
           ANTHROPIC_BASE_URL: "http://127.0.0.1:4032",
           ANTHROPIC_API_KEY: "sk-ant-placeholder",
+          CLAUDE_CODE_AUTO_COMPACT_WINDOW: "272000",
           CLAUDE_CODE_MAX_CONTEXT_TOKENS: "872000",
         });
-        assert.equal(settings.enabledPlugins["demo@market"], true);
+        assert.equal(settings.enabledPlugins["demo@market"], false);
+        assert.equal(settings.enabledPlugins["tea-rags@tea-rags"], true);
         assert.equal(settings.model, "sonnet");
         const config = JSON.parse(fs.readFileSync(configFile, "utf8"));
         assert.equal(config.hasCompletedOnboarding, true);
-        assert.equal(config.mcpServers.demo.command, "demo");
+        assert.equal(config.mcpServers.demo, undefined);
+        assert.equal(config.mcpServers["tea-rags"].command, "tea-rags");
         assert.equal(fs.statSync(settingsFile).mode & 0o777, 0o600);
         const modified = fs.statSync(settingsFile).mtimeMs;
         run("http://127.0.0.1:4032");
@@ -49,7 +55,7 @@ describe("profile launcher", () => {
         fs.rmSync(settingsFile);
         fs.rmSync(configFile);
         run("http://127.0.0.1:4032");
-        assert.equal(JSON.parse(fs.readFileSync(settingsFile, "utf8")).env.CLAUDE_CODE_MAX_CONTEXT_TOKENS, "872000");
+        assert.equal(JSON.parse(fs.readFileSync(settingsFile, "utf8")).env.CLAUDE_CODE_AUTO_COMPACT_WINDOW, "272000");
       } finally {
         fs.rmSync(directory, { recursive: true, force: true });
       }
