@@ -209,7 +209,7 @@ values into `~/.claude-gpt/settings.json`, retaining existing settings:
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:4032",
     "ANTHROPIC_API_KEY": "sk-ant-placeholder",
-    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "272000",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000",
     "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "872000"
   }
 }

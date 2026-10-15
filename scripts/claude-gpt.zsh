@@ -21,7 +21,7 @@ claude-gpt() (
     local proxy_port="${CLAUDE_GPT_PORT:-4032}"
     local proxy_url="http://127.0.0.1:$proxy_port"
     local proxy_log="$config_dir/claudex-$proxy_port.log"
-    local compact_window="${CLAUDE_GPT_AUTO_COMPACT_WINDOW:-272000}"
+    local compact_window="${CLAUDE_GPT_AUTO_COMPACT_WINDOW:-500000}"
 
     mkdir -p "$config_dir" || return 1
     # Background workers reload profile settings instead of retaining all env vars.

@@ -20,7 +20,7 @@ function claude-gpt --description "Claude Code via ChatGPT/Codex through Claudex
     end
     set -l proxy_url "http://127.0.0.1:$proxy_port"
     set -l proxy_log "$config_dir/claudex-$proxy_port.log"
-    set -l compact_window 272000
+    set -l compact_window 500000
     if set -q CLAUDE_GPT_AUTO_COMPACT_WINDOW
         set compact_window $CLAUDE_GPT_AUTO_COMPACT_WINDOW
     end

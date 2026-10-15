@@ -15,7 +15,7 @@ describe("profile launcher", () => {
       const settingsFile = path.join(directory, "settings.json");
       const configFile = path.join(directory, ".claude.json");
       const run = (url: string): void => {
-        execFileSync(process.execPath, ["-e", script, directory, url, "272000"], { stdio: "pipe" });
+        execFileSync(process.execPath, ["-e", script, directory, url, "500000"], { stdio: "pipe" });
       };
       try {
         fs.writeFileSync(settingsFile, JSON.stringify({
@@ -33,7 +33,7 @@ describe("profile launcher", () => {
           CUSTOM_SETTING: "keep",
           ANTHROPIC_BASE_URL: "http://127.0.0.1:4032",
           ANTHROPIC_API_KEY: "sk-ant-placeholder",
-          CLAUDE_CODE_AUTO_COMPACT_WINDOW: "272000",
+          CLAUDE_CODE_AUTO_COMPACT_WINDOW: "500000",
           CLAUDE_CODE_MAX_CONTEXT_TOKENS: "872000",
         });
         assert.equal(settings.enabledPlugins["demo@market"], false);
@@ -55,7 +55,7 @@ describe("profile launcher", () => {
         fs.rmSync(settingsFile);
         fs.rmSync(configFile);
         run("http://127.0.0.1:4032");
-        assert.equal(JSON.parse(fs.readFileSync(settingsFile, "utf8")).env.CLAUDE_CODE_AUTO_COMPACT_WINDOW, "272000");
+        assert.equal(JSON.parse(fs.readFileSync(settingsFile, "utf8")).env.CLAUDE_CODE_AUTO_COMPACT_WINDOW, "500000");
       } finally {
         fs.rmSync(directory, { recursive: true, force: true });
       }
